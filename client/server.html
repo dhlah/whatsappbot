@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<title>WA API</title>
-	<meta name="description" content="WhatsApp Api otomatis.">
+	<title>Coding Bot Scan QR</title>
+	<meta name="description" content="Coding Bot Scan QR">
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
@@ -86,12 +86,12 @@ body{
 	<img src="./assets/loader.gif" alt="loading" id="qrcode" style="width: 250px;">
   </div>
 	<div class="card">
-		<div class="title">Panduan</div>
+		<div class="title">Coding Bot</div>
 		<div class="body">
 			<p>
-				<li>Scan kode QR berikut dengan aplikasi WhatsApp anda, sebagaimana Whatsapp Web biasanya.</li>
-				<li>Sesi Whatsapp Web yang aktif akan keluar, diganti dengan server ini.</li>
-				<li><b>Gunakan dengan bijak.</b></li>
+				<br>
+        <br>
+        <p>©2024 Coding Org</p>
 			</p>
 		</div>
 	</div>
@@ -100,6 +100,7 @@ body{
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.3/socket.io.js" crossorigin="anonymous"></script>
 		<script>
 			const qrcode = document.getElementById("qrcode");
+      const info = document.getElementById("info-connection")
 			const socket = io();
 
 			socket.on("qr", src => {

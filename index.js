@@ -35,6 +35,11 @@ const io = require("socket.io")(server);
 const qrcode = require("qrcode");
 const { default: pino } = require("pino");
 const bodyParser = require("body-parser");
+const {
+  handleDaftarInfo,
+  handleInfoBaru,
+  handleHapusInfo,
+} = require("./src/commands/infocommand.js");
 
 let sock;
 let qr;
@@ -64,9 +69,7 @@ app.get("/scan", (req, res) => {
 });
 
 app.get("/", (req, res) => {
-  res.sendFile("./client/index.html", {
-    root: __dirname,
-  });
+  res.json({ status: 200, message: "OK" });
 });
 
 app.get("/", (req, res) => {
@@ -183,6 +186,12 @@ async function connectToWhatsApp() {
         await handleHapusTugas(sock, messages, pesanMasuk);
       } else if (pesanMasuk.startsWith(".tugas")) {
         await handleDaftarTugas(sock, messages);
+      } else if (pesanMasuk.startsWith(".daftarinfo")) {
+        await handleDaftarInfo(sock, messages);
+      } else if (pesanMasuk.startsWith(".infobaru")) {
+        await handleInfoBaru(sock, messages, pesan);
+      } else if (pesanMasuk.startsWith(".hapusinfo")) {
+        await handleHapusInfo(sock, messages, pesan);
       }
     }
   });

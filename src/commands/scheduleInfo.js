@@ -1,8 +1,11 @@
 const moment = require("moment-timezone");
-const prisma = require("../lib/db.js");
+const JadwalPelajaran = require("../models/jadwalPelajaran"); // Assume you have defined Mongoose model for 'JadwalPelajaran'
+const TugasPelajaran = require("../models/tugas"); // Assume you have defined Mongoose model for 'TugasPelajaran'
+const Info = require("../models/info"); // Assume you have defined Mongoose model for 'Info'
+const BajuPelajaran = require("../models/baju"); // Assume you have defined Mongoose model for 'BajuPelajaran'
 
 const grupWhatsapp = "120363024197079611@g.us";
-// Function to convert English day name to Indonesian
+
 function convertToIndonesianDayName(englishDayName) {
   const dayNameMapping = {
     monday: "Senin",
@@ -18,10 +21,8 @@ function convertToIndonesianDayName(englishDayName) {
 }
 
 async function handleScheduleInfo(sock) {
-  // Set the timezone to Indonesia/Jakarta
   moment.tz.setDefault("Asia/Jakarta");
 
-  // Get tomorrow's day using moment
   const tomorrow = moment().add(1, "day");
   const tomorrowFormatted = tomorrow.format("YYYY-MM-DD");
   const harikedua = moment().add(2, "day").format("YYYY-MM-DD");
@@ -31,64 +32,31 @@ async function handleScheduleInfo(sock) {
   const yesterdayFormated = yesterday.format("YYYY-MM-DD");
 
   try {
-    //delete yesterday data
-
-    const deletedTugas = await prisma.tugasPelajaran.deleteMany({
-      where: {
-        dikumpulkan: yesterdayFormated,
-      },
+    const deletedTugas = await TugasPelajaran.deleteMany({
+      dikumpulkan: yesterdayFormated,
     });
 
-    const deletedInfo = await prisma.info.deleteMany({
-      where: {
-        infotime: yesterdayFormated,
-      },
+    const deletedInfo = await Info.deleteMany({
+      infotime: yesterdayFormated,
     });
 
-    // Query the database for tomorrow's schedule
-    const schedule = await prisma.jadwalPelajaran.findMany({
-      where: {
-        hari: indonesianDayName.toLowerCase(),
-      },
-      select: {
-        mataPelajaran: true,
-      },
-      orderBy: {
-        waktuMulai: "asc",
-      },
-    });
+    const schedule = await JadwalPelajaran.find({
+      hari: indonesianDayName.toLowerCase(),
+    })
+      .select("mataPelajaran")
+      .sort({ waktuMulai: "asc" });
 
-    // Query the database for tomorrow's assignments
-    const tugasharibesok = await prisma.tugasPelajaran.findMany({
-      where: {
-        dikumpulkan: tomorrowFormatted,
-      },
-      select: {
-        mataPelajaran: true,
-        dikumpulkan: true,
-        notes: true,
-      },
-    });
-    const tugasharikedua = await prisma.tugasPelajaran.findMany({
-      where: {
-        dikumpulkan: harikedua,
-      },
-      select: {
-        mataPelajaran: true,
-        dikumpulkan: true,
-        notes: true,
-      },
-    });
-    const tugashariketiga = await prisma.tugasPelajaran.findMany({
-      where: {
-        dikumpulkan: hariketiga,
-      },
-      select: {
-        mataPelajaran: true,
-        dikumpulkan: true,
-        notes: true,
-      },
-    });
+    const tugasharibesok = await TugasPelajaran.find({
+      dikumpulkan: tomorrowFormatted,
+    }).select("mataPelajaran dikumpulkan notes");
+
+    const tugasharikedua = await TugasPelajaran.find({
+      dikumpulkan: harikedua,
+    }).select("mataPelajaran dikumpulkan notes");
+
+    const tugashariketiga = await TugasPelajaran.find({
+      dikumpulkan: hariketiga,
+    }).select("mataPelajaran dikumpulkan notes");
 
     const assignments = [
       ...tugasharibesok,
@@ -96,32 +64,18 @@ async function handleScheduleInfo(sock) {
       ...tugashariketiga,
     ];
 
-    // Query the database for tomorrow's additional info
-    const additionalInfo = await prisma.info.findMany({
-      where: {
-        infotime: tomorrowFormatted,
-      },
-      select: {
-        title: true,
-        content: true,
-      },
-    });
+    const additionalInfo = await Info.find({
+      infotime: tomorrowFormatted,
+    }).select("title content");
 
-    const bajuPelajaran = await prisma.bajuPelajaran.findMany({
-      where: {
-        hari: indonesianDayName.toLowerCase(),
-      },
-      select: {
-        namaBaju: true,
-      },
-    });
+    const bajuPelajaran = await BajuPelajaran.find({
+      hari: indonesianDayName.toLowerCase(),
+    }).select("namaBaju");
 
-    // Build the message content
     let replyText = `*Informasi Untuk ${indonesianDayName}, ${tomorrow.format(
       "MMMM DD, YYYY"
     )}*\n\n`;
 
-    //handle baju dipakai
     replyText += "*[👔] Baju Yang Dipakai* : \n\n";
     if (bajuPelajaran.length > 0) {
       bajuPelajaran.forEach((item) => {
@@ -132,7 +86,6 @@ async function handleScheduleInfo(sock) {
     }
     replyText += "\n";
 
-    // Handle Jadwal Pelajaran
     replyText += "*[🗂] Mapel* : \n\n";
     if (schedule.length > 0) {
       schedule.forEach((item) => {
@@ -143,7 +96,6 @@ async function handleScheduleInfo(sock) {
       replyText += "[⚠] Tidak ada jadwal pelajaran untuk hari ini. \n\n";
     }
     replyText += "*[📚] Tugas* : \n\n";
-    // Handle Tugas Pelajaran
     if (assignments.length > 0) {
       assignments.forEach((item) => {
         replyText += `■ ${item.mataPelajaran}, ${item.notes}, \nDikumpulkan: ${item.dikumpulkan}\n\n`;
@@ -152,7 +104,6 @@ async function handleScheduleInfo(sock) {
       replyText += "[⚠] Tidak ada tugas pelajaran untuk hari ini. \n\n";
     }
     replyText += "*[📜] Info* : \n\n";
-    // Handle Additional Info
     if (additionalInfo.length > 0) {
       additionalInfo.forEach((item) => {
         replyText += `■ ${item.title}, ${item.content}\n`;
@@ -162,7 +113,7 @@ async function handleScheduleInfo(sock) {
     }
 
     replyText += "\n-codingbot";
-    // Send the message
+
     await sock.sendMessage(grupWhatsapp, { text: replyText });
   } catch (error) {
     console.error("Error fetching info:", error);

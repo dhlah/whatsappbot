@@ -1,5 +1,5 @@
 async function handleMenuCommand(sock, messages) {
-  if (messages[0].key.remoteJid === "6287714041949@s.whatsapp.net") {
+  if (messages[0]) {
     let replyText = "Halo, Bang\n";
     replyText += "*Daftar Perintah* : \n\n";
     replyText += "• .menu\n"

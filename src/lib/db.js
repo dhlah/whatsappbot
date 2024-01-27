@@ -1,18 +1,21 @@
-const { PrismaClient } = require('@prisma/client');
+const mongoose = require("mongoose");
+require("dotenv").config();
 
+// Get the MongoDB URI from environment variables or set it directly
+const dbURI = process.env.DATABASE_URL;
 
-const prismaClientSingleton = () => {
-  return new PrismaClient();
-};
+// Create connection
+mongoose.connect(dbURI);
 
-const globalForPrisma = global;
+// Get default connection instance
+const db = mongoose.connection;
 
-const prisma = globalForPrisma.prisma || prismaClientSingleton();
+// Handle connection error events
+db.on("error", (error) => {
+  console.error("MongoDB connection error:", error);
+});
 
-module.exports = prisma;
-
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma;
-}
-
-module.exports = prisma
+// Handle successful connection
+db.once("open", () => {
+  console.log("Successfully connected to MongoDB");
+});

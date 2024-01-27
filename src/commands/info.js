@@ -1,5 +1,8 @@
 const moment = require("moment-timezone");
-const prisma = require("../lib/db.js");
+const JadwalPelajaran = require("../models/jadwalPelajaran");
+const TugasPelajaran = require("../models/tugas");
+const Info = require("../models/info");
+const BajuPelajaran = require("../models/baju");
 
 // Function to convert English day name to Indonesian
 function convertToIndonesianDayName(englishDayName) {
@@ -30,65 +33,27 @@ async function handleInfoCommand(sock, messages) {
   const yesterdayFormated = yesterday.format("YYYY-MM-DD");
 
   try {
-    //delete yesterday data
-
-    const deletedTugas = await prisma.tugasPelajaran.deleteMany({
-      where: {
-        dikumpulkan: yesterdayFormated,
-      },
-    });
-
-    const deletedInfo = await prisma.info.deleteMany({
-      where: {
-        infotime: yesterdayFormated,
-      },
-    });
+    // Delete yesterday's data
+    await TugasPelajaran.deleteMany({ dikumpulkan: yesterdayFormated });
+    await Info.deleteMany({ infotime: yesterdayFormated });
 
     // Query the database for tomorrow's schedule
-    const schedule = await prisma.jadwalPelajaran.findMany({
-      where: {
-        hari: indonesianDayName.toLowerCase(),
-      },
-      select: {
-        mataPelajaran: true,
-      },
-      orderBy: {
-        waktuMulai: "asc",
-      },
-    });
+    const schedule = await JadwalPelajaran.find({
+      hari: indonesianDayName.toLowerCase(),
+    })
+      .select("mataPelajaran")
+      .sort({ waktuMulai: "asc" });
 
     // Query the database for tomorrow's assignments
-    const tugasharibesok = await prisma.tugasPelajaran.findMany({
-      where: {
-        dikumpulkan: tomorrowFormatted,
-      },
-      select: {
-        mataPelajaran: true,
-        dikumpulkan: true,
-        notes: true,
-      },
-    });
-    const tugasharikedua = await prisma.tugasPelajaran.findMany({
-      where: {
-        dikumpulkan: harikedua,
-      },
-      select: {
-        mataPelajaran: true,
-        dikumpulkan: true,
-        notes: true,
-      },
-    });
-    const tugashariketiga = await prisma.tugasPelajaran.findMany({
-      where: {
-        dikumpulkan: hariketiga,
-      },
-      select: {
-        mataPelajaran: true,
-        dikumpulkan: true,
-        notes: true,
-      },
-    });
-
+    const tugasharibesok = await TugasPelajaran.find({
+      dikumpulkan: tomorrowFormatted,
+    }).select("mataPelajaran dikumpulkan notes");
+    const tugasharikedua = await TugasPelajaran.find({
+      dikumpulkan: harikedua,
+    }).select("mataPelajaran dikumpulkan notes");
+    const tugashariketiga = await TugasPelajaran.find({
+      dikumpulkan: hariketiga,
+    }).select("mataPelajaran dikumpulkan notes");
     const assignments = [
       ...tugasharibesok,
       ...tugasharikedua,
@@ -96,31 +61,20 @@ async function handleInfoCommand(sock, messages) {
     ];
 
     // Query the database for tomorrow's additional info
-    const additionalInfo = await prisma.info.findMany({
-      where: {
-        infotime: tomorrowFormatted,
-      },
-      select: {
-        title: true,
-        content: true,
-      },
-    });
+    const additionalInfo = await Info.find({
+      infotime: tomorrowFormatted,
+    }).select("title content");
 
-    const bajuPelajaran = await prisma.bajuPelajaran.findMany({
-      where: {
-        hari: indonesianDayName.toLowerCase(),
-      },
-      select: {
-        namaBaju: true,
-      },
-    });
+    const bajuPelajaran = await BajuPelajaran.find({
+      hari: indonesianDayName.toLowerCase(),
+    }).select("namaBaju");
 
     // Build the message content
     let replyText = `*Informasi Untuk ${indonesianDayName}, ${tomorrow.format(
       "MMMM DD, YYYY"
     )}*\n\n`;
 
-    //handle baju dipakai
+    // Handle baju dipakai
     replyText += "*[👔] Baju Yang Dipakai* : \n\n";
     if (bajuPelajaran.length > 0) {
       bajuPelajaran.forEach((item) => {
@@ -161,6 +115,7 @@ async function handleInfoCommand(sock, messages) {
     }
 
     replyText += "\n-codingbot";
+
     // Send the message
     console.log(messages[0].key.remoteJid);
     await sock.sendMessage(
