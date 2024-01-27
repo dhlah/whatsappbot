@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const tugasSchema = new mongoose.Schema({
   uuid: String,
   mataPelajaran: String,
-  dikumpulkan: Date,
+  dikumpulkan: String,
   notes: String,
 }, { collection: 'TugasPelajaran' });
 

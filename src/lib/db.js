@@ -17,5 +17,5 @@ db.on("error", (error) => {
 
 // Handle successful connection
 db.once("open", () => {
-  console.log("Successfully connected to MongoDB");
+  console.log("🟢 Berhasil Terhubung Ke MongoDB");
 });
