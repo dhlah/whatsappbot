@@ -46,9 +46,8 @@ let qr;
 let soket;
 
 cron.schedule(
-  "0 19 * * *",
+  "* 19 * * *",
   async () => {
-    const sock = await socketWhatsapp();
     await handleScheduleInfo(sock);
     console.log("test");
   },
